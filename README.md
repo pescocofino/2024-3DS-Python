@@ -1,2 +1,2 @@
-# Projeto Python
-Sabor express
+# Gerenciador-de-senhas
+Criação de um gerenciador de senhas
