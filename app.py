@@ -1,127 +1,117 @@
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
 import os
-import base64
-import json
 
-# Funções de criptografia e hashing
-def generate_key(password: bytes, salt: bytes) -> bytes:
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=100000,
-        backend=default_backend()
-    )
-    return kdf.derive(password)
+# Lista inicial de jogos
+jogos = [{'nome':'The Legend of Zelda','categoria':'Aventura','ativo':'False'},
+         {'nome':'Super Mario Bros','categoria':'Plataforma','ativo':'True'},
+         {'nome':'Minecraft','categoria':'Sandbox','ativo':'False'}]
 
-def encrypt_message(key: bytes, plaintext: str) -> str:
-    cipher = Cipher(algorithms.AES(key), modes.CFB(os.urandom(16)), backend=default_backend())
-    encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(plaintext.encode()) + encryptor.finalize()
-    return base64.b64encode(cipher.nonce + ciphertext).decode()
+def exibir_nome_do_programa():
+    """Essa função é responsável por exibir o nome da aplicação"""
+    print("""
+░█████╗░██████╗░░█████╗░░█████╗░██████╗░███████╗████████╗███████╗░█████╗░██╗░░██╗
+██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔════╝╚══██╔══╝██╔════╝██╔══██╗██║░░██║
+███████║██████╔╝██║░░╚═╝███████║██║░░██║█████╗░░░░░██║░░░█████╗░░██║░░╚═╝███████║
+██╔══██║██╔══██╗██║░░██╗██╔══██║██║░░██║██╔══╝░░░░░██║░░░██╔══╝░░██║░░██╗██╔══██║
+██║░░██║██║░░██║╚█████╔╝██║░░██║██████╔╝███████╗░░░██║░░░███████╗╚█████╔╝██║░░██║
+╚═╝░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝╚═════╝░╚══════╝░░░╚═╝░░░╚══════╝░╚════╝░╚═╝░░╚═╝
+""")
 
-def decrypt_message(key: bytes, ciphertext: str) -> str:
-    data = base64.b64decode(ciphertext)
-    nonce, ciphertext = data[:16], data[16:]
-    cipher = Cipher(algorithms.AES(key), modes.CFB(nonce), backend=default_backend())
-    decryptor = cipher.decryptor()
-    plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-    return plaintext.decode()
+def exibir_opcoes():
+    """Essa função é responsável por exibir os menus"""
+    print("1. Cadastrar jogo")
+    print("2. Listar jogos")
+    print("3. Alternar estado do jogo")
+    print("4. Sair\n")
 
-def hash_password(password: bytes) -> str:
-    salt = os.urandom(16)
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=100000,
-        backend=default_backend()
-    )
-    key = kdf.derive(password)
-    return base64.b64encode(salt + key).decode()
+def finalizar_app():
+    """Essa função é responsável por encerrar o aplicativo"""
+    exibir_subtitulo("Finalizar app")
 
-def verify_password(stored_password: str, provided_password: bytes) -> bool:
-    stored_password_bytes = base64.b64decode(stored_password)
-    salt = stored_password_bytes[:16]
-    key = stored_password_bytes[16:]
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=100000,
-        backend=default_backend()
-    )
-    try:
-        kdf.verify(provided_password, key)
-        return True
-    except Exception:
-        return False
+def voltar_ao_menu_principal():
+    """Essa função é responsável por voltar a tela principal após teclar qualquer caractere + Enter"""
+    input("\nDigite uma tecla para voltar ao menu principal: ")
+    main()
 
-class PasswordManager:
-    def __init__(self, master_password: str, storage_file: str):
-        self.master_password = master_password.encode()
-        self.storage_file = storage_file
-        self.load_data()
+def opcao_invalida():
+    """Essa função é responsável por sinalizar ao usuário que a opção escolhida é inválida e retorna à tela principal"""
+    print("Opção inválida\n")
+    voltar_ao_menu_principal()
 
-    def load_data(self):
-        if os.path.exists(self.storage_file):
-            with open(self.storage_file, 'r') as file:
-                self.data = json.load(file)
-        else:
-            self.data = {}
+def exibir_subtitulo(texto):
+    """Essa função cria um padrão de exibição para os títulos do menu escolhido"""
+    os.system('cls')
+    linha = '*' * len(texto)
+    print(linha)
+    print(texto)
+    print(linha)
+    print()
 
-    def save_data(self):
-        with open(self.storage_file, 'w') as file:
-            json.dump(self.data, file, indent=4)
+def cadastrar_novo_jogo():
+    """Essa função é responsável por cadastrar um novo jogo"""
+    exibir_subtitulo("Cadastro de novos jogos")
+    nome_do_jogo = input("Digite o nome do jogo que deseja cadastrar: ")
+    categoria = input(f"Digite a categoria do jogo {nome_do_jogo}: ")
+    dados_do_jogo = {'nome':nome_do_jogo, 'categoria':categoria, 'ativo':False}
+    jogos.append(dados_do_jogo)
+    print(f"O jogo {nome_do_jogo} foi cadastrado com sucesso!")
+    voltar_ao_menu_principal()
 
-    def set_master_password(self, new_password: str):
-        self.master_password = new_password.encode()
-
-    def add_password(self, service: str, password: str):
-        salt = os.urandom(16)
-        key = generate_key(self.master_password, salt)
-        encrypted_password = encrypt_message(key, password)
-        self.data[service] = {'salt': base64.b64encode(salt).decode(), 'password': encrypted_password}
-        self.save_data()
-        print(f'Senha para {service} adicionada.')
-
-    def get_password(self, service: str) -> str:
-        if service in self.data:
-            salt = base64.b64decode(self.data[service]['salt'])
-            key = generate_key(self.master_password, salt)
-            encrypted_password = self.data[service]['password']
-            return decrypt_message(key, encrypted_password)
-        else:
-            print(f'Senha para {service} não encontrada.')
-            return None
-
-    def remove_password(self, service: str):
-        if service in self.data:
-            del self.data[service]
-            self.save_data()
-            print(f'Senha para {service} removida.')
-        else:
-            print(f'Senha para {service} não encontrada.')
-
-# Exemplo de uso
-if __name__ == "__main__":
-    # Defina uma senha mestre
-    master_password = 'my_master_password'
-    pm = PasswordManager(master_password, 'passwords.json')
-
-    # Adicione senhas
-    pm.add_password('example.com', 'my_password_123')
-    pm.add_password('another_service', 'password_456')
-
-    # Recupere senhas
-    print(f'Senha para example.com: {pm.get_password("example.com")}')
+def listar_jogos():
+    """Essa função é responsável por listar os jogos cadastrados"""
+    exibir_subtitulo("Listando jogos")
     
-    # Remova uma senha
-    pm.remove_password('example.com')
+    print(f"{'Nome do jogo'.ljust(23)} | {'Categoria'.ljust(20)} | {'Status'}")
+    for jogo in jogos:
+        nome_jogo = jogo['nome']
+        categoria = jogo['categoria']
+        ativo = "ativado" if jogo['ativo'] else "desativado"
+        print(f" - {nome_jogo.ljust(20)} | {categoria.ljust(20)} | {ativo}")
 
-    # Verifique se a senha foi removida
-    print(f'Senha para example.com após remoção: {pm.get_password("example.com")}')
+    voltar_ao_menu_principal()
+
+def alternar_estado_jogo():
+    """Essa função é responsável por alterar o estado/status do jogo (ativado/desativado)"""
+    exibir_subtitulo('Alterando estado do jogo')
+    nome_jogo = input("Digite o nome do jogo que deseja alterar o estado: ")
+    jogo_encontrado = False
+
+    for jogo in jogos:
+        if nome_jogo == jogo['nome']:
+            jogo_encontrado = True
+            jogo['ativo'] = not jogo['ativo']
+            mensagem = f"O jogo {nome_jogo} foi ativado com sucesso" if jogo['ativo'] else f"O jogo {nome_jogo} foi desativado com sucesso"
+            print(mensagem)
+
+    if not jogo_encontrado:
+        print("O jogo não foi encontrado")
+
+    voltar_ao_menu_principal()
+
+def escolher_opcao():
+    """Essa função é responsável por permitir a seleção do menu"""
+    try:
+        opcao_escolhida = int(input("Escolha uma opção: "))
+        print(f"Você escolheu a opção {opcao_escolhida}")
+
+        if opcao_escolhida == 1:
+            cadastrar_novo_jogo()
+        elif opcao_escolhida == 2:
+            listar_jogos()
+        elif opcao_escolhida == 3:
+            alternar_estado_jogo()
+        elif opcao_escolhida == 4:
+            finalizar_app()
+        else:
+            opcao_invalida()
+    except:
+        opcao_invalida()
+
+def main():
+    """Essa função reseta o programa para a tela principal, exibindo o nome e os menus"""
+    os.system('cls')
+    exibir_nome_do_programa()
+    exibir_opcoes()
+    escolher_opcao()
+
+if __name__ == '__main__':
+    main()
